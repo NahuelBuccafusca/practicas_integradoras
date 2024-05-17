@@ -11,19 +11,30 @@ router.get('/',async (req,res)=>{
     }
 })
 router.post('/', async(req,res)=>{
-    let {nombre,apellido,email}= req.body
-    if (!nombre|| !apellido || !email){
+    let {userName,userLastname,email}= req.body
+    if (!userName|| !userLastname || !email){
         res.send({status:"error",error:"faltan parametros"})
     }
-    let result=await userModel.create({nombre,apellido,email})
+    let result=await userModel.create({userName,userLastname,email})
     res.send({result:"success", payload:result})
 })
-router.put('/', (req,res)=>{
-    res.send('Put request to the homepage')
+router.put('/api/users/:uid', async (req, res) => {
+    let { uid } = req.params
+
+    let userToReplace = req.body
+
+    if (!userToReplace.name || !userToReplace.last_name || !userToReplace.email) {
+        res.send({ status: "error", error: "Parametros no definidos" })
+    }
+    let result = await userModel.updateOne({ _id: uid }, userToReplace)
+
+    res.send({ result: "success", payload: result })
 })
 
-router.delete('/', (req,res)=>{
-    res.send('delete request to the homepage')
+router.delete('/api/users/:uid', async (req, res) => {
+    let { uid } = req.params
+    let result = await userModel.deleteOne({ _id: uid })
+    res.send({ result: "success", payload: result })
 })
 
 
