@@ -1,129 +1,158 @@
+import { Router } from "express";
+import productsModel from "../dao/models/productModel.js";
+import mongoose from "mongoose";
 
-import { Router } from 'express'
-import productModel from '../dao/models/productModel.js'
+const router = Router();
 
-const router = Router()
 
-router.get('/api/products', async (req, res) => {
+
+router.get("/", async (req, res) => {
     try {
-        const products = await productModel.find().lean()
-        res.render('products',{
-            products: products
-        })
+        let { limit, page, sort, query } = req.query;
+        limit = parseInt(limit) || 10;
+        page = parseInt(page) || 1;
+        sort = sort || '';
+        query = query || '';
+
+        let filter = {};
+
+        if (query) {
+            const categoryRegex = new RegExp(`^${query}$`, 'i');
+            filter = { category: categoryRegex };
+        }
+
+        let options = {
+            page: page,
+            limit: limit,
+            sort: sort ? { price: sort === 'asc' ? 1 : -1 } : {},
+            lean: true
+        };
+
+        let result = await productsModel.paginate(filter, options);
+
+        const { totalPages, prevPage, nextPage, page: currentPage, hasPrevPage, hasNextPage } = result;
+        const prevLink = hasPrevPage ? `${req.baseUrl}/get?limit=${limit}&page=${prevPage}&sort=${sort}&query=${query}` : null;
+        const nextLink = hasNextPage ? `${req.baseUrl}/get?limit=${limit}&page=${nextPage}&sort=${sort}&query=${query}` : null;
+
+        console.log(`
+        Paginación:
+        Total Pages: ${totalPages}
+        Prev Page: ${prevPage}
+        Next Page: ${nextPage}
+        Current Page: ${currentPage}
+        Has Prev Page: ${hasPrevPage}
+        Has Next Page: ${hasNextPage}
+        Prev Link: ${prevLink}
+        Next Link: ${nextLink}
+        `);
+
+        res.render('products', { products: result.docs, prevLink: prevLink, nextLink, nextLink });
     } catch (error) {
-        console.error('Error al cargar los productos:', error)
-        res.status(500).render('error', { message: 'Error al cargar los productos.' })
+        console.error("No se pudieron obtener los productos", error);
+        res.status(500).json({
+            status: 'error',
+            message: "No se pudieron obtener los productos"
+        });
     }
-})
+});
 
-router.get('/api/products/:pid', async (req, res) => {
+router.get("/:pid", async (req, res) => {
     try {
-        const product = await productModel.findById(req.params.pid).lean()
+        const pId = req.params.pid;
+
+        if (!mongoose.Types.ObjectId.isValid(pId)) {
+            return res.status(400).send({ status: "error", error: "ID inválido" });
+        }
+
+        const objectId = new mongoose.Types.ObjectId(pId);
+        const product = await productsModel.findById(objectId);
 
         if (!product) {
-            return res.status(404).json({ error: 'Producto no encontrado' })
+            return res.status(404).send({ status: "error", error: "Producto no encontrado" });
         }
 
-        res.render('searchedProduct', { product })
+        res.render('productDetail', {
+            id: product._id,
+            title: product.title,
+            description: product.description,
+            category: product.category,
+            price: product.price,
+            code: product.code,
+            stock: product.stock
+        });
     } catch (error) {
-        console.error('Error al cargar la página de detalle del producto:', error)
-        res.status(500).render('error', { message: 'Error al cargar la página de detalle del producto.' })
+        console.error("No se pudo obtener el producto por ID", error);
+        res.status(500).send({ status: "error", error: "Error interno del servidor" });
     }
-})
+});
 
-router.post('/api/products', async (req, res) => {
-    let { title, description, code, price, stock, category, } = req.body
-    console.log(req.body)
 
-    if (!title || !description || !code || !price || !stock || !category ) {
-        res.send({ status: "error", error: "Faltan parametros" })
-    }
-
-    let result = await productModel.create({ title, description, code, price, stock, status:true, category })
-    console.log(result)
-    res.send({ result: "success", payload: result })
-})
-
-router.get('/api/addProduct', (req, res) => {
-    res.render('addProduct')
-})
-
-router.post('/api/addProduct', async (req, res) => {
+router.get("/post", async (req, res) => {
     try {
-        let { title, description, code, price, stock, category,  } = req.body
+        res.render('addProduct');
+    } catch (error) {
+        console.error("No se pudo renderizar la vista", error);
+    }
+})
 
-        if (!title || !description || !code || !price || !stock || !category) {
-            return res.status(400).json({ error: 'Faltan parámetros' })
+router.post("/", async (req, res) => {
+    try {
+        let { title, description, category, price,code, stock, status } = req.body;
+        if (!title || !description || !category || !price  || !code || !stock || !status) {
+            return res.status(400).send({ status: "error", error: "Algunos parámetros están vacíos" });
         }
 
-        let newProduct = await productModel.create({
-            title,
-            description,
-            code,
-            price,
-            stock,
-            category,
-            status: true
-        })
-
-        res.render('addProduct')
+        let result = await productsModel.create({ title, description, category, price, code, stock, status });
+        res.render('addProductSuccess', { product: result.toObject() });
     } catch (error) {
-        console.error('Error al agregar  producto:', error)
-        res.status(500).json({ error: 'Error del servidor' })
+        console.error("No se pudo agregar el producto", error);
+        res.status(500).send({ status: "error", error: "Error interno del servidor" });
     }
-})
+});
 
 
-router.put('/api/products/:pid', async (req, res) => {
-    let { pid } = req.params
-    let productToReplace = req.body
-
-    if (!productToReplace.title || !productToReplace.description  || !productToReplace.code || !productToReplace.price || !productToReplace.stock || !productToReplace.category || !productToReplace.thumbnail) {
-        res.send({ status: "error", error: "Faltan parametros" })
-    }
-
-    let result = await productModel.updateOne({ _id: pid }, productToReplace)
-    res.send({ result: "success", payload: result })
-})
-
-router.get('/api/products/update/:pid', async (req, res) => {
+//! ENDPOINTS PUT
+router.get("/put", async (req, res) => {
     try {
-        const productById = await productModel.findByIdAndUpdate(req.params.pid).lean()
-        res.render('updateProduct', { productById })
+        res.render('updateProduct');
     } catch (error) {
-        console.log(error.message)
+        console.error("No se pudo renderizar la vista", error);
     }
-})
+});
 
-router.post('/api/products/update/:pid', async (req, res) => {
+router.put("/put/:pid", async (req, res) => {
+    let { pid } = req.params;
+    let productToReplace = req.body;
+
+    if (!productToReplace.title || !productToReplace.description || !productToReplace.category || !productToReplace.price || !productToReplace.code || !productToReplace.stock || !productToReplace.status) {
+        return res.status(400).json({ status: "error", error: "Algunos parametros estan vacios" });
+    }
+
     try {
-        let { pid } = req.params
-        console.log('Datos recibidos para actualizar:', req.body)
-        await productModel.findByIdAndUpdate(pid, req.body)
-        res.redirect('/api/products')
+        let result = await productsModel.updateOne({ _id: pid }, productToReplace);
+        if (result.nModified === 0) {
+            return res.status(404).json({ status: "error", error: "Producto no encontrado" });
+        }
+        res.json({ status: "success", payload: result });
     } catch (error) {
-        console.error('Error al actualizar el producto:', error)
-        res.status(500).render('error', { message: 'Error al actualizar el producto.' })
+        console.error("Error actualizando el producto:", error);
+        res.status(500).json({ status: "error", error: "Error interno del servidor" });
     }
-})
+});
 
 
-router.delete('/api/products/:pid', async (req, res) => {
-    let { pid } = req.params
-    let result = await productModel.deleteOne({ _id: pid })
-    res.send({ result: "success", payload: result })
-})
-
-router.get('/api/products/delete/:pid', async (req, res) => {
+router.get("/delete", async (req, res) => {
     try {
-        const { pid } = req.params
-        await productModel.findByIdAndDelete(pid)
-        
-        res.redirect('/api/products')
+        res.render('deleteProduct');
     } catch (error) {
-        console.error('Error al eliminar el producto:', error)
-        res.status(500).render('error', { message: 'Error al eliminar el producto.' })
+        console.error("No se pudo renderizar la vista", error);
     }
 })
 
-export default router
+router.delete("/delete/:pid", async (req, res) => {
+    let { pid } = req.params;
+    let result = await productsModel.deleteOne({ _id: pid });
+    res.send({ result: "success", payload: result });
+})
+
+export default router;

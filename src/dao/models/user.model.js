@@ -2,12 +2,12 @@ import mongoose from "mongoose";
 
 const usersCollection = "Users"
 const userSchema = new mongoose.Schema({
-    userName: {
+    first_name: {
         type: String,
         required: true,
         max: 100
     },
-    userLastname: {
+    last_name: {
         type: String,
         required: true,
         max: 100
@@ -15,9 +15,21 @@ const userSchema = new mongoose.Schema({
     email: {
         type: String,
         required: true,
-        max: 100
-    }
-})
+        max: 100,
+        unique:true,
+    },
+    age:{
+        type: Number
+    },
+    password:{
+        type: String,
+        required:true,
+    },
+    role:{type:String,
+        default:'user'
+    },
+    cart:{type: mongoose.Schema.Types.ObjectId, ref:'Cart'}
 
+})
 const userModel = mongoose.model(usersCollection, userSchema)
 export default userModel

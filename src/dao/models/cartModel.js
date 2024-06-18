@@ -1,44 +1,16 @@
-import mongoose from "mongoose"
-
-const cartCollection = "Carts"
+import mongoose from 'mongoose'
 
 const cartSchema = new mongoose.Schema({
-    user_id: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    },
     products: [{
-        product_id: {
+        product: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Product',
             required: true
         },
-        quantity: {
-            type: Number,
-            required: true,
-            min: 1
-        }
-    }],
-    total_price: {
-        type: Number,
-        required: true
-    },
-    status: {
-        type: String,
-        enum: ['active', 'pending', 'completed'],
-        default: 'active'
-    },
-    created_at: {
-        type: Date,
-        default: Date.now
-    },
-    updated_at: {
-        type: Date,
-        default: Date.now
-    }
-})
+        quantity: { type: Number, default: 1 }
+    }]
+}, { timestamps: true })
 
-const cartModel = mongoose.model(cartCollection, cartSchema)
+const Cart = mongoose.model('Cart', cartSchema)
 
-export default cartModel
+export default Cart

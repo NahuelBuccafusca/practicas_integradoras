@@ -11,11 +11,11 @@ router.get('/',async (req,res)=>{
     }
 })
 router.post('/', async(req,res)=>{
-    let {userName,userLastname,email}= req.body
-    if (!userName|| !userLastname || !email){
+    let {first_name,last_name,email}= req.body
+    if (!first_name|| !last_name || !email){
         res.send({status:"error",error:"faltan parametros"})
     }
-    let result=await userModel.create({userName,userLastname,email})
+    let result=await userModel.create({first_name,last_name,email})
     res.send({result:"success", payload:result})
 })
 router.put('/api/users/:uid', async (req, res) => {

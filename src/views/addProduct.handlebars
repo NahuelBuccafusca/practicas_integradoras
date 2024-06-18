@@ -1,38 +1,44 @@
 <div class="container mt-5">
-    <h2>Complete todos los campos para agregar el producto</h2>
-    <form id="addProductForm" action="/api/addProduct" method="POST">
-        <div class="mb-3">
-            <label for="title" class="form-label">Título</label>
-            <input type="text" class="form-control" id="title" name="title" placeholder="Título" value="{{productById.title}}" required>
+    <h1 class="mb-4">Agregar nuevo producto</h1>
+    <form method="POST" action="/api/products">
+        <div class="form-group">
+            <label for="title">Título del Producto</label>
+            <input type="text" class="form-control" id="title" name="title" required>
         </div>
-        <div class="mb-3">
-            <label for="description" class="form-label">Descripción</label>
-            <input type="text" class="form-control" id="description" name="description" placeholder="Descripción" value="{{productById.description}}" required>
+        <div class="form-group">
+            <label for="description">Descripción</label>
+            <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
         </div>
-        <div class="mb-3">
-            <label for="code" class="form-label">Código</label>
-            <input type="text" class="form-control" id="code" name="code" placeholder="Código" value="{{productById.code}}" required>
+        <div class="form-group">
+            <label for="category">Categoría</label>
+            <select class="form-control" id="category" name="category" required>
+                <option value="" selected disabled>Seleccione una categoría</option>
+                <option value="indumentaria">Indumentaria</option>
+                <option value="calzado">Calzado</option>
+                <option value="accesorios">Accesorios</option>
+        
+            </select>
         </div>
-        <div class="mb-3">
-            <label for="price" class="form-label">Precio</label>
-            <input type="number" class="form-control" id="price" name="price" placeholder="Precio" value="{{productById.price}}" required>
+        <div class="form-group">
+            <label for="price">Precio</label>
+            <input type="number" class="form-control" id="price" name="price" step="0.01" required>
         </div>
-        <div class="mb-3">
-            <label for="stock" class="form-label">Stock</label>
-            <input type="number" class="form-control" id="stock" name="stock" placeholder="Stock" value="{{productById.stock}}" required>
+
+        <div class="form-group">
+            <label for="code">Código del Producto</label>
+            <input type="text" class="form-control" id="code" name="code" required>
         </div>
-        <div class="mb-3">
-            <label for="category" class="form-label">Categoría</label>
-            <input type="text" class="form-control" id="category" name="category" placeholder="Categoría" value="{{productById.category}}" required>
+        <div class="form-group">
+            <label for="stock">Stock</label>
+            <input type="number" class="form-control" id="stock" name="stock" required>
         </div>
-        <div class="container text-center">
-        <button type="submit" class="btn btn-success">
-            Agregar Producto
-        </button>
-        <a href="/api/products" class="btn btn-danger">
-            Volver a Productos
-        </a>
+        <div class="form-group">
+            <label for="status">Estado</label>
+            <select class="form-control" id="status" name="status" required>
+                <option value="true">Activo</option>
+                <option value="false">Inactivo</option>
+            </select>
         </div>
+        <button type="submit" class="btn btn-primary mt-3">Agregar Producto</button>
     </form>
 </div>
-
