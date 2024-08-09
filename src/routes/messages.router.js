@@ -1,37 +1,58 @@
-import { Router } from "express";
-import messageModel from "../dao/models/message.model.js";
-const router= Router();
+const express = require("express");
+const router = express.Router();
+const userDTO = require("../dao/DTOs/user.dto.js");
+const messageModel = require("../dao/models/message.model.js");
+const MessageManager = require("../dao/classes/messageManager.js");
+const {
+  isUser,
+} = require("../middleware/auth.js");
 
-router.get('/messages',async (req,res)=>{
-    try {
-        let messages=await messageModel.find().lean()
-        res.render('chat',{
-            
-            messages : messages
-        })
-    } catch (error) {
-        console.log(error)
-    }
-})
-router.post('/messages', async(req,res)=>{
-    let {user, message}= req.body
-    if (!user|| !message){
-        res.send({status:"error",error:"faltan parametros"})
-    }
-    let result=await messageModel.create({user,message})
-    res.redirect('/messages')
-})
-router.get('/messages/:messid', async (req, res) => {
-    try {
-        const { messid } = req.params
-        await messageModel.findByIdAndDelete(messid)
-        
-        res.redirect('/messages')
-    } catch (error) {
-        console.error('Error al eliminar el producto:', error)
-        res.status(500).render('error', { message: 'Error al eliminar el producto.' })
-    }
-})
+const messageM = new MessageManager();
+router.get("/messages", async (req, res) => {
+  try {
+    let user = new userDTO(req.session.user);
+    const listMessages = await messageModel.find().lean();
 
+    res.render("chat", { listMessages, user});
+  } catch (error) {
+    console.error("No se encuentas mensajes en la Base de datos", error);
+  }
+});
 
-export default router;
+router.post("/messages", isUser, async (req, res) => {
+  try {
+    let { mensaje } = req.body;
+    let user = new userDTO(req.session.user);
+    await messageM.addMessage(user.first_name, mensaje);
+    const listMessages = await messageModel.find().lean();
+    res.render("chat", { listMessages });
+  } catch (error) {
+    res.send({ message: "usted no es usuario" });
+  }
+});
+
+router.put("/", (req, res) => {
+  res.send("Estoy llegando desde Put de messages.router");
+});
+
+router.delete("/messages/:uid", async (req, res) => {
+  let { uid } = req.params;
+  let messages = await messageModel.find();
+  try {
+    const exist = messages.find((m) => m.id === uid);
+    await messageM.deleteMessage(uid);
+    res.status(201).json({ message: `Mensaje borrado` });
+  } catch (error) {
+    if (error.message === "No se encuentra mensaje en la base de datos") {
+      res.status(400).json({
+        error: `No se encuentra mensaje con ID: ${uid} en la base de datos`,
+      });
+    } else {
+      res
+        .status(500)
+        .json({ error: "Ocurrió un error al procesar la solicitud" });
+    }
+  }
+});
+
+module.exports = router;

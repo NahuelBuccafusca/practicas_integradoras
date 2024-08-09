@@ -1,63 +1,111 @@
-import express from 'express'
-import mongoose from 'mongoose'
-import handlebars from'express-handlebars'
-import __dirname from './utils.js';
-import dotenv from "dotenv"
-import userRouter from'./routes/users.router.js'
-import messageRouter from './routes/messages.router.js'
-import cartRouter from './routes/carts.router.js'
-import productRouter from './routes/products.router.js'
-import MongoStore from 'connect-mongo';
-import session from 'express-session';
-import cookieParser from 'cookie-parser';
-import FileStore from 'session-file-store';
-import viewsRouter from'./routes/views.js'
-import sessionsRouter from './routes/api/sessions.router.js'
-import passport from 'passport';
-import initializePassport from './config/passport.config.js';
+const express = require("express");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const session = require("express-session");
+const MongoStore = require("connect-mongo");
+const handlebars = require("express-handlebars");
+const mongoose = require("mongoose");
+const productsRouter = require("./routes/products.router.js");
+const cartsRouter = require("./routes/carts.router.js");
+const messageRouter = require("./routes/messages.router.js");
+const sessionRouter = require("./routes/api/session.router.js");
+const viewsRouter = require("./routes/views.router.js");
+const usersRouter = require("./routes/users.router.js");
+const dotenv = require("dotenv");
+const passport = require("passport");
+const { errorHandler } = require("./middleware/index.js");
+const initializePassport = require("./config/passport.config.js");
+const { devLogger, prodLogger } = require("./middleware/logger.js");
 
-const app = express()
-const PORT = 8080
-const FileStoreInstance= FileStore(session)
 dotenv.config();
 
+const app = express();
+const PORT = 8080;
 
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
-app.use(cookieParser())
-
-mongoose.connect(process.env.MONGO_URL).then(() => {
-    console.log("Conectado a la base de datos")})
-.catch(error => console.error("Error en la conexión", error))
-
-app.use(session({
-    store: new FileStoreInstance({path:'./session', ttl:100, retries:0}),
-    secret:'secretkey',
-    resave:false,
-    saveUnitialized:true,
-    store:MongoStore.create({mongoUrl:process.env.MONGO_URL,
-        ttl:100
+app.use(cookieParser());
+app.use(cors());
+app.use(
+  session({
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGO_URL,
     }),
-}))
-initializePassport()
-app.use(passport.initialize())
-app.use(passport.session())
+    secret: "secretCode",
+    resave: false,
+    saveUninitialized: true,
+  })
+);
 
+initializePassport();
+app.use(passport.initialize());
+app.use(passport.session());
+app.use(cookieParser());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(__dirname + "/public"));
 
+app.engine("handlebars", handlebars.engine());
+app.set("views", __dirname + "/views");
+app.set("view engine", "handlebars");
 
+const connectMongoDB = async () => {
+  await mongoose.connect(process.env.MONGO_URL);
+  try {
+    console.log("Conectado a la base de datos");
+  } catch (error) {
+    console.error("Error en la conexión", error);
+  }
+};
 
-app.engine('handlebars', handlebars.engine())
-app.set('views', __dirname + '/views')
-app.set('view engine', 'handlebars')
+connectMongoDB();
 
+app.get("/loggerTest", (req, res) => {
+  res.render("logger");
+});
+app.get("/loggerTest/:logger", (req, res) => {
+  const { logger } = req.params;
+  switch (logger) {
+    case "debug":
+      devLogger.debug("Esto es un logger Debug");
+      res.render("logger", {  text: "Esto es un debug" });
+      break;
+    case "info":
+      devLogger.info("Esto es un logger info de desarrollo");
+      prodLogger.info("Esto es un looger info de producción");
+      res.render("logger", { text: "Esto es una info" });
+      break;
+    case "http":
+      devLogger.http("Esto es un logger http de desarrollo");
+      prodLogger.http("Esto es un looger http de producción");
+      res.render("logger", {  text: "Esto es un http" });
+      break;
+    case "warning":
+      devLogger.warning("Esto es un logger warning de desarrollo");
+      prodLogger.warning("Esto es un looger warning de producción");
+      res.render("logger", { text: "Esto es un warning" });
+      break;
+    case "error":
+      devLogger.error("Esto es un logger error de desarrollo");
+      prodLogger.error("Esto es un looger error de producción");
+      res.render("logger", {  text: "Esto es un error" });
+      break;
+    case "fatal":
+      devLogger.fatal("Esto es un logger fatal de desarrollo");
+      prodLogger.fatal("Esto es un looger fatal de producción");
+      res.render("logger", {  text: "Esto es un fatal" });
+      break;
+    default:
+      res.render("logger");
+  }
+});
 
-app.use('/api/sessions', sessionsRouter)
-app.use('/', viewsRouter),
-app.use('/', messageRouter)
-app.use('/', cartRouter)
-app.use('/', productRouter)
-app.listen(PORT, () => {
-    console.log(`server is running on port ${PORT}`)
-}
-)
+app.use("/api/sessions", sessionRouter);
+app.use("/", viewsRouter);
+app.use("/", productsRouter);
+app.use("/carts", cartsRouter);
+app.use("/", messageRouter);
+app.use("/api/users", usersRouter);
+app.use(errorHandler);
 
+app.listen(PORT, () =>
+  console.log(`Server running on port ${PORT}`)
+);

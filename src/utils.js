@@ -1,11 +1,55 @@
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import bcrypt from 'bcryptjs';
+const bcrypt = require("bcryptjs");
+const{faker}= require("@faker-js/faker");
+const passport = require("passport");
+faker.location="es";
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
+const createHash = (password) =>
+  bcrypt.hashSync(password, bcrypt.genSaltSync(10));
 
-export default __dirname
+const isValidPassword = (user, password) =>
+  bcrypt.compareSync(password, user.password);
 
-export const createHash= password=> bcrypt.hashSync(password,bcrypt.genSaltSync())
-export const isValidPassword=(user,password)=>bcrypt.compareSync(password, user.password)
+
+const passportCall = (strategy) => {
+  return async (req, res, next) => {
+    passport.authenticate(strategy, function (err, user, info) {
+      if (err) return next(err);
+      if (!user) {
+        return res
+          .status(401)
+          .send({ error: info.messages ? info.messages : info.toString() });
+      }
+      req.user = user;
+      next();
+    })(req, res, next);
+  };
+};
+
+const authorization = (role) => {
+  return async (req, res, next) => {
+    if (!req.user) return res.status(401).send({ error: "Unauthorized" });
+    if (req.user.role !== role)
+      return res.status(403).send({ error: "No permission" });
+    next();
+  };
+};
+const generateProducts = () => {
+  return {
+    title: faker.commerce.productName(),
+    description: faker.commerce.productDescription(),
+    price: faker.commerce.price(),
+    thumbnail: faker.image.urlLoremFlickr(),
+    code: faker.string.alphanumeric({ length: 6 }),
+    status: faker.datatype.boolean(),
+    category: faker.commerce.department(),
+    stock: faker.number.int({ max: 100 }),
+  };
+};
+
+module.exports = {
+  createHash,
+  isValidPassword,
+  passportCall,
+  authorization,
+  generateProducts,
+};

@@ -1,5 +1,5 @@
 async function addToCart(pid) {
-    const cid = '666f452c0fa3db7199463594';
+    const cid = '66563df8b6bb68667f581300';
     const url = `http://localhost:8080/api/carts/post/${cid}/product/${pid}`;
 
     try {
