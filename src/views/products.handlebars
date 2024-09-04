@@ -4,9 +4,13 @@
 
     <div >
       {{#if user}}
+      <div>
         <p>¡Hola,
           {{user.first_name}}
           {{user.last_name}}!</p>
+          <a  href="../api/sessions/current">Ir a mi Perfil<span class="material-symbols-outlined"></span></a>
+          </div>
+          <p>Ultima conexión: {{user.last_connection}}</p>
 
       {{else}}
         <p>Inicia sesión para inicar la compra</p>
@@ -15,6 +19,7 @@
 
         <a
           href="/carts/{{user.cart}}"
+          class="material-symbols-outlined"
           id="imgCart"
         >
           {{#if cart.length}}
@@ -44,7 +49,7 @@
                 ><button  data-id="{{this._id}}">Agregar
                   </button></form>
 
-                <a class="viewDetails" href="/productDetails/{{this._id}}">Ver
+                <a href="/productDetails/{{this._id}}">Ver
                   más...</a></div>
                   {{else}}
                   <a href="/productDetails/{{this._id}}">Ver
@@ -69,11 +74,13 @@
       {{/if}}
     
     {{#if user}}
+  <form action="/messages" method="GET">
+  <button>Chateá con nosotros</button></form>
       <form action="/api/sessions/logout" method="POST">
         <button type="submit">Cerrar Sesión</button>
       </form>
     {{else}}
-      <a  href="/login">Inicia sesión</a>
+      <a href="/login">Inicia sesión</a>
     {{/if}}
   </section>
 

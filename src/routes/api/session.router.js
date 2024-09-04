@@ -1,8 +1,8 @@
 const express = require("express");
 const passport = require("passport");
 const sessionController = require("../../controllers/sessionController.js");
-const router = express.Router();
 
+const router = express.Router();
 
 router.post(
   "/register",

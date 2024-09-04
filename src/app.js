@@ -5,6 +5,8 @@ const session = require("express-session");
 const MongoStore = require("connect-mongo");
 const handlebars = require("express-handlebars");
 const mongoose = require("mongoose");
+const swaggerJsdoc = require("swagger-jsdoc");
+const swaggerUiExpress = require("swagger-ui-express");
 const productsRouter = require("./routes/products.router.js");
 const cartsRouter = require("./routes/carts.router.js");
 const messageRouter = require("./routes/messages.router.js");
@@ -57,6 +59,20 @@ const connectMongoDB = async () => {
 };
 
 connectMongoDB();
+
+const swaggerOptions = {
+  definition: {
+    openapi: `3.0.1`,
+    info: {
+      title: "Documentación ecommerce",
+      description: `Proyecto Backend.`,
+    },
+  },
+  apis: [`${__dirname}/docs/**/*.yaml`],
+};
+
+const specs = swaggerJsdoc(swaggerOptions);
+app.use("/apidocs", swaggerUiExpress.serve, swaggerUiExpress.setup(specs));
 
 app.get("/loggerTest", (req, res) => {
   res.render("logger");
